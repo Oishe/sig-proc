@@ -7,6 +7,7 @@ from os import listdir
 from os.path import isfile, join
 import csv
 import json
+import pickle
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 
@@ -61,14 +62,13 @@ csvfiles = [f for f in listdir(file_dir) if isfile(join(file_dir, f))]
 
 for user_name, user_data in db_users.items():
     for file_name, file_data in user_data['sessions'].items():
-        download_link = file_data['download_link']
-        print(download_link)
         if not file_name in csvfiles:
+            download_link = file_data['download_link']
+            print(download_link)
             print('downloading.......')
             with open("./recordings/"+file_name, "wb") as fp:
                 blob = bucket.blob(download_link)
                 blob.download_to_file(fp)
-        
         file_data['user_name'] = user_name
         del file_data['download_link']
         db_files[file_name] = file_data
@@ -84,8 +84,16 @@ with open('db_files.csv', mode='w') as csv_file:
                   'activityStopTime', 'stopTime']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
-    for key, val in db_fileId.items():
+    for key, val in db_files.items():
         writer.writerow(val)
 
 print('Saving db_files.csv')
+
+
+with open('db_files.pickle', 'wb') as handle:
+    pickle.dump(db_files, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+print('Saving db_files.pickle')
+
+print('All csv files updated')
 print('done')
